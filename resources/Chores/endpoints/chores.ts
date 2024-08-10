@@ -1,6 +1,7 @@
 // ./resources/endpoints/post.ts
 
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { addChore} from '../handlers/addChore'
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   const id = event.pathParameters?.id;
@@ -13,6 +14,8 @@ export const handler = async (event: APIGatewayProxyEvent) => {
             statusCode: 200,
             body: JSON.stringify({ message: 'get' }),
           };
+      case 'POST':
+        return addChore(event.body)
       default:
         return {
           statusCode: 400,

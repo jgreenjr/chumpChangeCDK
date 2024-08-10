@@ -4,16 +4,30 @@ import { NodejsFunction} from 'aws-cdk-lib/aws-lambda-nodejs';
 import { RestApi, ApiKey,UsagePlan, LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
 import { Cors,ApiKeySourceType} from 'aws-cdk-lib/aws-apigateway';
 import { CfnOutput } from 'aws-cdk-lib';
+import { RemovalPolicy } from 'aws-cdk-lib';
+import { BillingMode } from 'aws-cdk-lib/aws-dynamodb';
+import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ChumpChangeCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+// 1. Create our DynamoDB table
+const choreTable = new Table(this, 'choreTable', {
+    partitionKey: { name: 'pk', type: AttributeType.STRING },
+    removalPolicy: RemovalPolicy.DESTROY,
+    billingMode: BillingMode.PAY_PER_REQUEST,
+});
     const postsLambda = new NodejsFunction(this, 'chumpChangeAPI', {
-      entry: 'resources/endpoints/chores.ts',
+      entry: 'resources/chores/endpoints/chores.ts',
       handler: 'handler',
+      environment:{
+        CHORE_TABLE_NAME: choreTable.tableName
+      }
     });
+    
+    choreTable.grantReadWriteData(postsLambda);
 
     const api = new RestApi(this, 'RestAPI', {
       restApiName: 'RestAPI',
@@ -53,6 +67,9 @@ export class ChumpChangeCdkStack extends cdk.Stack {
     // });
 
     posts.addMethod('GET', postsIntegration, {
+      apiKeyRequired: true,
+    });
+    posts.addMethod('POST', postsIntegration, {
       apiKeyRequired: true,
     });
    
