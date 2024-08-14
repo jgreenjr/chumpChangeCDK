@@ -13,12 +13,13 @@ export class ChumpChangeCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-// 1. Create our DynamoDB table
-const choreTable = new Table(this, 'choreTable', {
-    partitionKey: { name: 'pk', type: AttributeType.STRING },
-    removalPolicy: RemovalPolicy.DESTROY,
-    billingMode: BillingMode.PAY_PER_REQUEST,
-});
+    // 1. Create our DynamoDB table
+    const choreTable = new Table(this, 'choreTable', {
+        partitionKey: { name: 'pk', type: AttributeType.STRING },
+        removalPolicy: RemovalPolicy.DESTROY,
+        billingMode: BillingMode.PAY_PER_REQUEST,
+    });
+
     const postsLambda = new NodejsFunction(this, 'chumpChangeAPI', {
       entry: 'resources/chores/endpoints/chores.ts',
       handler: 'handler',
@@ -31,10 +32,6 @@ const choreTable = new Table(this, 'choreTable', {
 
     const api = new RestApi(this, 'RestAPI', {
       restApiName: 'RestAPI',
-      defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS,
-        allowMethods: Cors.ALL_METHODS,
-      },
       apiKeySourceType: ApiKeySourceType.HEADER,
     });
 
@@ -66,9 +63,15 @@ const choreTable = new Table(this, 'choreTable', {
     //   visibilityTimeout: cdk.Duration.seconds(300)
     // });
 
-    posts.addMethod('GET', postsIntegration, {
+    let get = posts.addMethod('GET', postsIntegration, {
       apiKeyRequired: true,
     });
+
+    let getWithID = get.resource.addResource('{id}')
+    getWithID.addMethod("GET", postsIntegration, {
+      apiKeyRequired: true,
+    })
+
     posts.addMethod('POST', postsIntegration, {
       apiKeyRequired: true,
     });
